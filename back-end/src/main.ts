@@ -1,24 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule , DocumentBuilder } from '@nestjs/swagger';
-import cookieParser from 'cookie-parser';
-import session from 'express-session';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
-  app.use(cookieParser());
-  app.use(
-    session({
-      secret: 'your-secret-key',
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24, 
-        httpOnly: true,
-      },
+
+   app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,            // removes extra fields
+      forbidNonWhitelisted: true, // throws error on unknown fields
+      transform: true,            // auto-transform DTOs
     }),
   );
+
+  exceptionFactory: (errors) => {
+    return new BadRequestException(
+      errors.map(err => ({
+        field: err.property,
+        errors: Object.values(err.constraints || {}),
+      })),
+    );
+  };
+    
 
   const config = new DocumentBuilder()
     .setTitle('Back-end')
