@@ -22,10 +22,12 @@ model User{
   email String @unique
   normalized_email String @unique
   is_email_confirmed Boolean @default(false)
-  email_confirm_cod String?
+  email_confirm_code String?
+  email_code_expired DateTime?
   google_id String? @unique
   password_hash String
-  rest_password_cod String?
+  rest_password_code String?
+  password_code_expired DateTime?
   role Role
   refresh_token String?
 }
