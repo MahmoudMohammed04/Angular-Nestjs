@@ -1,7 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
   provider = "prisma-client-js"
@@ -15,25 +11,103 @@ datasource db {
 
 
 model User{
-  id String @id @default(cuid())
+  id String @id 
   username String
-  normalized_username String
+  normalizedUsername String
   phone String
-  email String @unique
-  normalized_email String @unique
-  is_email_confirmed Boolean @default(false)
-  email_confirm_code String?
-  email_code_expired DateTime?
-  google_id String? @unique
-  password_hash String
-  rest_password_code String?
-  password_code_expired DateTime?
-  role Role
-  refresh_token String?
+  pictureUrl String
+
+  messages Message[]
+  messagesStatus MessageStatus[]
+  memberships ConversationMember[]
 }
 
-enum Role{
-  Admin
-  User
+model Conversation{
+  id Int @id @default(autoincrement())
+  name String?
+  imageUrl String?
+  isGroup Boolean
+  lastMessageId Int
+  lastMessageTime DateTime
+  membersCount Int
+
+  messages Message[]
+  members ConversationMember[]
 }
+
+model ConversationMember {
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  conversationId Int
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  role ConversationRole @default(member)
+  joinedAt DateTime @default(now())
+  
+  lastReadedMessageId Int
+  lastReadedMessage Message? @relation(name: "lastReadedMessage",fields: [lastReadedMessageId],references: [id],onDelete: SetNull)  
+  lastDeliveredMessageId Int
+  lastDeliveredMessage Message? @relation(name: "lastDeliveredMessage", fields: [lastDeliveredMessageId],references: [id],onDelete: SetNull) 
+
+  @@id([userId, conversationId])
+}
+
+
+enum ConversationRole {
+  member
+  admin
+  owner
+}
+
+model Message{
+  id Int @id  @default(autoincrement())
+  content String
+  sentAt DateTime
+  deliveredCount Int @default(0)
+  readCount Int @default(0)
+  conversationMembersCount Int
+
+  conversationId Int 
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  senderId String
+  sender User @relation(fields: [senderId],references: [id])
+
+  messageFiles MessageFile[]
+  messageStatus MessageStatus[]
+
+  readByMembers ConversationMember[] @relation("lastReadedMessage")
+  deliveredByMembers ConversationMember[] @relation("lastDeliveredMessage")
+
+}
+
+model MessageFile{
+  id Int @id @default(autoincrement())
+  fileUrl String
+  
+  messageId Int
+  message Message @relation(fields: [messageId],references: [id])
+}
+
+model MessageStatus{
+  messageId Int
+  messages Message  @relation(fields: [messageId],references: [id])
+  userId String 
+  user User @relation(fields: [userId],references: [id])
+
+  status MessageStatusType
+  updatedAt DateTime @updatedAt
+
+  @@id([messageId,userId])
+}
+
+enum MessageStatusType {
+  None
+  Seen
+  delivered
+}
+
+
+
+
 
